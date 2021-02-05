@@ -46,7 +46,7 @@ class RonaData(Dataset):
         """Read in an image"""
         with open(path, 'rb') as f:
             img = Image.open(f)
-            return img.convert("L")
+            return img.convert("RGB")
 
     def load_meta(self) -> List[MetaData]:
         """Load metadata
@@ -63,12 +63,12 @@ class RonaData(Dataset):
         samples = []
         for path in rona:
             samples.append(
-                MetaData(path, label=1)
+                MetaData(path, label=1.0)
             )
 
         for path in safe:
             samples.append(
-                MetaData(path, label=0)
+                MetaData(path, label=0.0)
             )
 
         random.shuffle(samples)

@@ -1,3 +1,5 @@
+import torch
+import argparse
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
@@ -14,18 +16,10 @@ def parse_args():
     parser = argparse.ArgumentParser(description='MTCNN Baseline')
     parser.add_argument('--dataroot', type=str,
                         help='Root path to the data')
-    parser.add_argument('--savepath', type=str,
-                        help='path to the save loss curves')
     parser.add_argument('--batch_size', type=int, default=128,
                         help='batch size')
-    parser.add_argument('--device', type=str, default="cuda",
-                        help='cpu or cuda')
     parser.add_argument('--epochs', type=int, default=100,
                         help='Adam learning rate')
-    parser.add_argument('--lr', type=float, default=1e-2,
-                        help='Adam learning rate')
-    parser.add_argument('--eps', type=float, default=1e-8,
-                        help='Adam epsilon')
     return parser.parse_args()
 
 
@@ -55,25 +49,25 @@ class Resnet(pl.LightningModule):
         return self.resnet(x)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        optimizer = torch.optim.SGD(self.parameters(), lr=1e-3)
         return optimizer
 
     def training_step(self, train_batch, batch_idx):
         data, target = train_batch
         logits = self.resnet(data)
-        loss = F.binary_cross_entropy_with_logits(logits, target)
+        loss = F.binary_cross_entropy_with_logits(logits.squeeze(), target)
         self.log('train_loss', loss)
+        return loss
 
-    def training_step(self, valid_batch, batch_idx):
+    def validation_step(self, valid_batch, batch_idx):
         data, target = valid_batch
         logits = self.resnet(data)
-        loss = F.binary_cross_entropy_with_logits(logits, target)
+        loss = F.binary_cross_entropy_with_logits(logits.squeeze(), target)
         self.log('valid_loss', loss)
 
 
 def main():
     args = parse_args()
-    device = torch.device(ARGS.device)
 
     data_transforms = transforms.Compose([
         transforms.Resize((100, 100)),
@@ -86,18 +80,22 @@ def main():
 
     dataset = RonaData(args.dataroot, data_transforms)
     num_train = len(dataset) // (1/(3/4))
-    num_valid = len(dataset) - train_size
+    num_valid = len(dataset) - num_train
 
     train_data, valid_data = random_split(
-        dataset, [num_train, num_valid]
+        dataset, [int(num_train), int(num_valid)]
     )
 
-    train_loader = DataLoader(train_data, args.batch_size)
-    valid_loader = DataLoader(valid_data, args.batch_size)
+    train_loader = DataLoader(
+        train_data, args.batch_size, num_workers=8
+    )
+    valid_loader = DataLoader(
+        valid_data, args.batch_size, num_workers=8
+    )
 
     model = Resnet()
 
-    trainer = pl.Trainer(gpus=1, limit_train_batches=0.5)
+    trainer = pl.Trainer(limit_train_batches=0.5)
     trainer.fit(model, train_loader, valid_loader)
 
 
