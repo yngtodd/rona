@@ -1,9 +1,13 @@
+import torch.nn as nn
 import torch.optim as optim
+import torch.nn.functional as F
+
+import pytorch_lightning as pl
 import torchvision.models as models
 
 from rona.data import RonaData
 from torchvision import transforms
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 
 
 def parse_args():
@@ -25,6 +29,48 @@ def parse_args():
     return parser.parse_args()
 
 
+class Classifier(nn.Module):
+
+    def __init__(self):
+        super(Classifier, self).__init__()
+        self.fc1 = nn.Linear(512, 256)
+        self.fc2 = nn.Linear(256, 128)
+        self.fc3 = nn.Linear(128, 1)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+
+class Resnet(pl.LightningModule):
+
+    def __init__(self):
+        super().__init__()
+        self.resnet = models.resnet18(pretrained=True)
+        self.resnet.fc = Classifier()
+
+    def forward(self, x):
+        return self.resnet(x)
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        return optimizer
+
+    def training_step(self, train_batch, batch_idx):
+        data, target = train_batch
+        logits = self.resnet(data)
+        loss = F.binary_cross_entropy_with_logits(logits, target)
+        self.log('train_loss', loss)
+
+    def training_step(self, valid_batch, batch_idx):
+        data, target = valid_batch
+        logits = self.resnet(data)
+        loss = F.binary_cross_entropy_with_logits(logits, target)
+        self.log('valid_loss', loss)
+
+
 def main():
     args = parse_args()
     device = torch.device(ARGS.device)
@@ -33,15 +79,26 @@ def main():
         transforms.Resize((100, 100)),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
+        transforms.Normalize(
+            mean=[0.6405], std=[0.2562]
+        ),
     ])
 
-    data = RonaData(args.dataroot, data_transforms)
-    data_loader = DataLoader(data, args.batch_size)
+    dataset = RonaData(args.dataroot, data_transforms)
+    num_train = len(dataset) // (1/(3/4))
+    num_valid = len(dataset) - train_size
 
-
-    optimizer = optim.Adam(
-        model.parameters(), lr=ARGS.lr, eps=ARGS.eps
+    train_data, valid_data = random_split(
+        dataset, [num_train, num_valid]
     )
+
+    train_loader = DataLoader(train_data, args.batch_size)
+    valid_loader = DataLoader(valid_data, args.batch_size)
+
+    model = Resnet()
+
+    trainer = pl.Trainer(gpus=1, limit_train_batches=0.5)
+    trainer.fit(model, train_loader, valid_loader)
 
 
 if __name__=="__main__":
