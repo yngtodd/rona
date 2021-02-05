@@ -13,13 +13,11 @@ from torch.utils.data import DataLoader, random_split
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='MTCNN Baseline')
+    parser = argparse.ArgumentParser(description='Resnet18')
     parser.add_argument('--dataroot', type=str,
                         help='Root path to the data')
     parser.add_argument('--batch_size', type=int, default=128,
                         help='batch size')
-    parser.add_argument('--epochs', type=int, default=100,
-                        help='Adam learning rate')
     return parser.parse_args()
 
 
@@ -49,8 +47,7 @@ class Resnet(pl.LightningModule):
         return self.resnet(x)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.SGD(self.parameters(), lr=1e-3)
-        return optimizer
+        return torch.optim.SGD(self.parameters(), lr=1e-3)
 
     def training_step(self, train_batch, batch_idx):
         data, target = train_batch
