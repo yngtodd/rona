@@ -47,7 +47,7 @@ class Resnet(pl.LightningModule):
         return self.resnet(x)
 
     def configure_optimizers(self):
-        return torch.optim.SGD(self.parameters(), lr=1e-3)
+        return torch.optim.SGD(self.parameters(), lr=1e-2)
 
     def training_step(self, train_batch, batch_idx):
         data, target = train_batch
@@ -92,7 +92,7 @@ def main():
 
     model = Resnet()
 
-    trainer = pl.Trainer(limit_train_batches=0.5)
+    trainer = pl.Trainer(gpus=[2], limit_train_batches=0.5)
     trainer.fit(model, train_loader, valid_loader)
 
 
