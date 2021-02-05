@@ -1,4 +1,4 @@
-<h1>Rona<img src='https://github.com/yngtodd/rona/blob/main/img/snek.png' align='right' width='180' height='104'></h1>
+<h1>Rona<img src='https://github.com/yngtodd/rona/blob/main/img/rona.png' align='right' width='180' height='104'></h1>
 
 
 UTKML's Covid CT [Challenge](https://www.kaggle.com/c/utkml-covid-detection-from-ct-scans/overview)!
