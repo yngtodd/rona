@@ -62,6 +62,10 @@ class Resnet(pl.LightningModule):
         loss = F.binary_cross_entropy_with_logits(logits.squeeze(), target)
         self.log('valid_loss', loss)
 
+    def test_step(self, test_batch, batch_idx):
+        data, _ = test_batch
+        logits = self.resnet(data)
+
 
 def main():
     args = parse_args()
