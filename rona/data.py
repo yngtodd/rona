@@ -28,6 +28,9 @@ class RonaData(Dataset):
 
         data = RonaData(<path>, transforms)
     """
+    mean = [0.6405]
+    std  = [0.2562]
+
     def __init__(self, root: str, transform=None):
         self.root = root
         self.transform = transform
