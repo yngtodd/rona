@@ -31,10 +31,10 @@ class RonaData(Dataset):
     mean = [0.6405]
     std  = [0.2562]
 
-    def __init__(self, root: str, transform=None):
+    def __init__(self, root: str, split: str="train", transform=None):
         self.root = root
         self.transform = transform
-        self.meta = self.load_meta()
+        self.meta = self.load_meta(split)
 
     def __repr__(self):
         return f"RonaData(root={self.root})"
@@ -48,7 +48,15 @@ class RonaData(Dataset):
             img = Image.open(f)
             return img.convert("RGB")
 
-    def load_meta(self) -> List[MetaData]:
+    def load_meta(self, split):
+        assert split in ["train", "test"]
+
+        if split == "test":
+            return self.load_test_meta()
+        else:
+            return self.load_train_meta()
+
+    def load_train_meta(self) -> List[MetaData]:
         """Load metadata
 
         We want to keep track of the paths for each
@@ -72,6 +80,18 @@ class RonaData(Dataset):
             )
 
         random.shuffle(samples)
+
+        return samples
+
+    def load_test_meta(self) -> List[MetaData]:
+        root = Path(self.root)
+        test = root.joinpath("test_data").glob("**/*.png")
+
+        samples = []
+        for path in test:
+            samples.append(
+                MetaData(path, label=None)
+            )
 
         return samples
 
